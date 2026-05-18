@@ -1,14 +1,42 @@
-import { generateDate, months } from "../calendar/calendar";
-import cn from "../calendar/cn";
+import { generateDate, months } from "../helper/calendar";
+import cn from "../helper/cn";
 import dayjs from "dayjs";
 import { SlArrowLeft, SlArrowRight } from "react-icons/sl";
 import { useState } from "react";
 
-export const Calendar = () => {
+export const Calendar = ({schedule}) => {
     const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
     const currentDate = dayjs();
     const [today, setToday] = useState(currentDate);
+    const [showPopup, setShowPopup] = useState(false);
+
+    //tandai schedul
+    const getStatusClass = (date) => {
+        //cari tanggal yang sama
+        const matchedSchedule = schedule.find((item) => 
+            dayjs(item.start_datetime).isSame(date, "day")
+        );
+
+        if (!matchedSchedule) return "";
+
+        switch (matchedSchedule.status) {
+            case "ongoing":
+                return "bg-yellow-400";
+
+            case "pending":
+                return "bg-blue-400";
+
+            case "completed":
+                return "bg-green-400";
+
+            case "cancelled":
+                return "bg-red-400";
+
+            default:
+                return "";
+        }
+    };
 
     return (
         <div className="px-6 py-2 flex gap-10 justify-center items-center text-white">
@@ -46,11 +74,13 @@ export const Calendar = () => {
                 <div className="w-full h-full grid grid-cols-7">
                     {generateDate(today.month(), today.year()).map(
                         ({ date, currentMonth, isToday }, index) => (
-                            <div key={index} className="h-14 place-items-center">
+                            <div key={index} className="h-14 place-items-center"
+                            on>
                                 <h1
                                     className={cn(
                                         currentMonth ? "" : "text-gray-400",
                                         isToday ? "bg-[#504F4F]" : "",
+                                        getStatusClass(date), //tandai schedul
                                         "h-10 w-full grid place-content-center rounded-2xl"
                                     )}
                                 >

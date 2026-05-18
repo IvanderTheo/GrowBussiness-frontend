@@ -9,10 +9,6 @@
   scrollbar-width: none;
 }
 
-.custom-scroll::-webkit-scrollbar {
-  width: 6px;
-}
-
 .custom-scroll-bar::-webkit-scrollbar-track {
   background: transparent;
 }
@@ -28,4 +24,42 @@
 
 .custom-bg-color {
   background: #262525;
+}
+
+@layer utilities {
+  .no-spinner::-webkit-inner-spin-button,
+  .no-spinner::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .no-spinner {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+}
+
+.custom-input{
+  border: 1px solid gray;
+  background-color: transparent;
+  border-radius: 10px;
+  padding:3px;
+  text-align: center;
+}
+
+.popup {
+  position: absolute;
+  top:50%;
+  left:50%;
+  transform: translate(-50%, -50%);
+}
+.popup label {
+  color: white;
+  font-weight: bold;
+}
+.popup input {
+  color:oklch(87.2% 0.01 258.338);
+  padding: 8px;
+  outline: 2px solid oklch(87.2% 0.01 258.338);
+  border-radius: 16px;
 }

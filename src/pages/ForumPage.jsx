@@ -2,37 +2,13 @@ import { useEffect, useState } from "react";
 import { publicApi } from "../services/api";
 import {useNavigate} from 'react-router-dom';
 
+//assets
 import searchIcon from "../assets/search.svg";
-import userIcon from "../assets/user.svg"
+import userIcon from "../assets/user.svg";
 
-// helper tanggal
-const formatTanggalId = (isoString) => {
-  if (!isoString) return '-';
-  const dateObj = new Date(isoString);
-  
-  // Menggunakan standar lokalisasi Indonesia (id-ID)
-  return new Intl.DateTimeFormat('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  }).format(dateObj);
-};
-
-//helper view
-const formatAngka = (angka) => {
-  if (!angka || isNaN(angka)) return '0';
-  
-  // Jika angka kurang dari 1.000, tampilkan angka biasa
-  if (angka < 1000) return angka.toString();
-
-  // Menggunakan Intl.NumberFormat dengan opsi notation: 'compact'
-  return new Intl.NumberFormat('en-US', {
-    notation: 'compact',
-    compactDisplay: 'short',
-    maximumFractionDigits: 1 // Menampilkan maksimal 1 angka di belakang koma (misal: 10.1k)
-  }).format(angka).toLowerCase(); // .toLowerCase() agar huruf 'K' menjadi kecil 'k'
-};
-
+//helper
+import { formatTanggalId } from "../helper/format-tanggal-id";
+import { formatAngka } from "../helper/format-view";
 
 export const ForumPage = () => {
 

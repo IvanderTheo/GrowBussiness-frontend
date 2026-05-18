@@ -1,7 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { usersAPI } from "../services/api";
-import Swal from 'sweetalert2'
 
 //assests
 import newChatIcon from '../assets/new-chat.svg'
@@ -10,6 +9,7 @@ import aiIcon from '../assets/chatbot.svg'
 import sendIcon from '../assets/sent.svg'
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { FaHistory } from "react-icons/fa";
+import Swal from 'sweetalert2'
 
 export const AiChatPage = () => {
     const [sessions, setSessions] = useState([]);

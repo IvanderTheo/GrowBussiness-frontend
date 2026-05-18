@@ -14,6 +14,7 @@ import { AiChatPage } from './pages/AiChatPage'
 import { ForumPage } from './pages/ForumPage'
 import { ForumDetailPage } from './pages/ForumDetailPage'
 import { SchedulePage } from './pages/SchedulePage'
+import { CalculationPage  } from './pages/CalculationPage'
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
           {/* feature layout and protected*/}
           <Route path="/ai" element={<ProtectedRoute><FeatureLayout><AiChatPage/></FeatureLayout></ProtectedRoute>}/>
           <Route path ="/schedule" element={<ProtectedRoute><FeatureLayout><SchedulePage/></FeatureLayout></ProtectedRoute>}/>
+          <Route path='/cogs-calculator' element={<ProtectedRoute><FeatureLayout><CalculationPage/></FeatureLayout></ProtectedRoute>}/>
           {/* unprotected route */}
           <Route path='/forum' element={<FeatureLayout><ForumPage/></FeatureLayout>}/>
           <Route path="/forum/:id" element={<FeatureLayout><ForumDetailPage/></FeatureLayout>}/>

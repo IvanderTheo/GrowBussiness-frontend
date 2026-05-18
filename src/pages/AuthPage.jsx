@@ -2,6 +2,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from '../context/AuthContext'
 import { authAPI } from '../services/api';
+
+//assets
 import growthImg from '../assets/growth.svg';
 import collaboratehImg from '../assets/collaborate.svg';
 import starImg from '../assets/star.svg';
@@ -127,7 +129,7 @@ export const AuthPage = () => {
                 </div>
                 {/* form */}
                 <div className="py-10 px-8 text-olive-50 basis-3/4 bg-[#4E4D4D] rounded-lg min-h-full max-h-full flex flex-col gap-3">
-                    {/* button */}
+                    {/* toggle */}
                     <div className="relative flex w-[220px] bg-[#4E4D4D] rounded-full p-1 outline-1 outline-white">
                         <div
                             className={`
@@ -197,7 +199,7 @@ export const AuthPage = () => {
                                     {error.password && <p className="text-red-500">{error.password}</p>}
                                 <button
                                     type="submit"
-                                    className="bg-black py-3 rounded-lg font-semibold">
+                                    className="bg-black py-3 rounded-lg font-semibold cursor-pointer">
                                     Login
                                 </button>
                             </form>

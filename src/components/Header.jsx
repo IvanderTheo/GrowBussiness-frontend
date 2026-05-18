@@ -25,7 +25,11 @@ export const Header = () => {
                 </div>
                 {/* nav */}
                 <nav className='hidden md:flex justify-center items-center gap-8'>
-                    <a className='text-olive-50 font-semibold' href="#home">Home</a>
+                    {isLandingPage ? (
+                        <a className='text-olive-50 font-semibold' href="#home">Home</a>
+                    ) : (
+                        <Link to='/' className='text-olive-50 font-semibold'>Home</Link>
+                    )}
                     <a className='text-olive-50 font-semibold' href="#about">About</a>
                     {isLandingPage ? (
                         <a
@@ -61,7 +65,7 @@ export const Header = () => {
                                 </Link>
 
                                 <Link
-                                    to="/cogs"
+                                    to="/cogs-calculator"
                                     className="block px-4 py-2 hover:bg-gray-100"
                                 >
                                     COGS Calculator
