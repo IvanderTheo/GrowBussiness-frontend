@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
-import { publicApi } from "../services/api";
+import { publicApi, usersAPI } from "../services/api";
 import {useNavigate} from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 //assets
 import searchIcon from "../assets/search.svg";
 import userIcon from "../assets/user.svg";
+import { FaPlus } from "react-icons/fa";
+import Swal from 'sweetalert2'
 
 //helper
 import { formatTanggalId } from "../helper/format-tanggal-id";
@@ -12,10 +15,18 @@ import { formatAngka } from "../helper/format-view";
 
 export const ForumPage = () => {
 
+    const isAuthenticated = useAuth();
     const [category,setCategory] = useState([]);
     const [forum, setForum] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState(null);
+    const [showPopup, setShowPopup] = useState(false);
     const navigate = useNavigate();
+    const [form, setForm] = useState({
+        title: '',
+        content: '',
+        category_id: ''
+    })
+    const [isLoading, setIsLoading] = useState(false);
     
     useEffect(() => {
         fetchCategory();
@@ -31,13 +42,10 @@ export const ForumPage = () => {
 
             //pilih category pertama
             if (categoriesData.length > 0) {
-
                 const firstCategory = categoriesData[0];
 
                 setSelectedCategory(firstCategory);
-
                 fetchForum(firstCategory.slug);
-
             }
         } catch (error) {
             console.log(error);
@@ -67,6 +75,73 @@ export const ForumPage = () => {
 
     //limit content
     const maxContent = 20;
+
+    //create forum
+    const handleShowPopup = () => {
+        if (!isAuthenticated) {
+            navigate('/login');
+            return;
+        }
+        setShowPopup(true);
+    };
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+
+        setForm((prev) => ({
+            ...prev,
+            [name]:
+                name === "category_id"
+                    ? Number.parseInt(value)
+                    : value
+        }));
+    };
+    const [error, setError] = useState({
+        title:'',
+        content:'',
+        category:''
+    });
+    const handlePostForum = async(e) => {
+        e.preventDefault();
+        setError({
+            title:'',
+            content:'',
+            category_id:''
+        })
+        
+        setIsLoading(true);
+        try {
+            const response = await usersAPI.postForum(form);
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                title: response.data.message,
+                icon: 'success',
+                showConfirmButton: false,
+                timer:3000,
+                timerProgressBar:true,
+            });
+            setForm({
+                title: '',
+                content: '',
+                category_id: ''
+            });
+            setShowPopup(false);
+            fetchCategory();
+        } catch (error) {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                title: 'store failed',
+                icon: 'error',
+                showConfirmButton: false,
+                timer:3000,
+                timerProgressBar:true,
+            });
+            console.log(error.response?.data);
+        } finally {
+            setIsLoading(false);
+        }
+    }
     return (
         <section className='flex flex-row p-6 gap-6'>
             <div className="flex flex-col gap-6">
@@ -77,7 +152,7 @@ export const ForumPage = () => {
                     <form>
                         <div className="relative w-full max-w-sm">
                             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                                <img src={searchIcon}/>
+                                <img src={searchIcon} alt="search icon"/>
                             </div>
                             <input
                             type="search"
@@ -89,7 +164,7 @@ export const ForumPage = () => {
                 {/* categories */}
                 <div className="bg-[#252424] px-4 py-2 rounded-2xl outline-1 outline-white gap-2 h-[35vh] flex flex-col overflow-y-auto custom-scroll">
                     <h3 className="text-white text-2xl"><strong>Categories</strong></h3>
-                    {category.map((category) =>(
+                    {category.map((category) => (
                         <div key={category.id}>
                             <button
                             className="cursor-pointer w-full"
@@ -153,6 +228,75 @@ export const ForumPage = () => {
                     ))}
                 </div>
             </div>
+            {/* add forum */}
+            <div className="absolute bottom-20 right-20">
+                <button 
+                type="button"
+                onClick={handleShowPopup}
+                className="rounded-full bg-[#474646] min-h-[8vh] min-w-[8vh] flex justify-center items-center cursor-pointer">
+                    <FaPlus className="min-h-[4vh] min-w-[4vh] fill-white"/>
+                </button>
+            </div>
+            {showPopup && (
+                <form 
+                onSubmit={handlePostForum}
+                className="flex flex-col rounded-2xl p-4 popup bg-[#252424] gap-2 outline-1 outline-white min-w-[100vh]">
+                    <h2 className="text-white text-2xl font-bold">Post Forum</h2>
+                    <label htmlFor="title">Title:</label>
+                    <input
+                    id="title"
+                    name="title"
+                    placeholder="Info RTX"
+                    value={form.title}
+                    type="text"
+                    required
+                    onChange={handleInputChange}/>
+                    <label htmlFor="content">Content:</label>
+                    <textarea
+                    id="content"
+                    name="content"
+                    placeholder="berapa ya harga rtx sekarang"
+                    value={form.content}
+                    onChange={handleInputChange}
+                    required
+                    className="scrollbar-none rounded-2xl text-white p-2 outline-2 outline-gray-500"/>
+                    <label htmlFor="category">Category</label>
+                    <select
+                        id="category"
+                        name="category_id"
+                        value={form.category_id}
+                        onChange={handleInputChange}
+                        className="text-white rounded-2xl outline-2 outline-gray-500 p-2"
+                    >
+                        <option value="">
+                            Pilih kategori
+                        </option>
+
+                        {category.map((item) => (
+                            <option
+                                key={item.id}
+                                value={item.id}
+                                className="bg-[#252424] text-white"
+                            >
+                                {item.name}
+                            </option>
+                        ))}
+                    </select>
+                    <div className="flex flex-row gap-2 w-full justify-between">
+                        <button 
+                        disabled={isLoading}
+                        className="w-full bg-green-500 rounded-2xl text-white cursor-pointer py-2" 
+                        type="submit">
+                            {isLoading ? 'Posting' : 'Post'}
+                        </button>
+                        <button
+                        disabled={isLoading}
+                        className="w-full bg-yellow-500 rounded-2xl text-white cursor-pointer py-2" 
+                        type="button" 
+                        onClick={(e)=>(setShowPopup(false))}>Cancel</button>
+                    </div>
+                </form>
+            )}
         </section>
     )
 }

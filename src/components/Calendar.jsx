@@ -74,8 +74,7 @@ export const Calendar = ({schedule}) => {
                 <div className="w-full h-full grid grid-cols-7">
                     {generateDate(today.month(), today.year()).map(
                         ({ date, currentMonth, isToday }, index) => (
-                            <div key={index} className="h-14 place-items-center"
-                            on>
+                            <div key={index} className="h-14 place-items-center">
                                 <h1
                                     className={cn(
                                         currentMonth ? "" : "text-gray-400",

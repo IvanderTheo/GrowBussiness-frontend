@@ -12,18 +12,15 @@ import { formatUntukInputDate } from '../helper/input-date'
 
 export const SchedulePage = () => {
     const [schedule, setSchedule] = useState([]);
+    const ongoingSchedule = schedule.filter(
+        (item) => item.current_status === "ongoing"
+    );
+
     const [isLoading,setIsloading] = useState(false);
     //enable endtime
     const [isEndTime, setIsEndTime] = useState(false);
-    // popup
-    const [selectedId, setSelectedId] = useState(null);
     //edit schedule
-    const [editSchedule, setEditSchedule] = useState({
-        title:'',
-        description: '',
-        start_datetime: null,
-        end_datetime: null,
-    })
+    const [editSchedule, setEditSchedule] = useState({})
     
     //form activity
     const [form, setForm] = useState({
@@ -51,15 +48,6 @@ export const SchedulePage = () => {
         }
 
     }
-    //edit activity
-    const handleEditChange = (e) => {
-        const { name, value } = e.target;
-
-        setEditActivity((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
-    }
     // change activity
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -74,52 +62,58 @@ export const SchedulePage = () => {
         end_datetime: '',
     });
 
+    //set item to edit
+    const onOpenDetail = (item) => {
+        setEditSchedule({
+            id: item.id,
+            title: item.title,
+            description: item.description,
+            start_datetime: item.start_datetime,
+            end_datetime:item.end_datetime,
+            status: item.status
+        })
+    }
+    //edit activity
+    const handleEditChange = (e) => {
+        const { name, value } = e.target;
+
+        setEditSchedule((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+    }
+
     //submit edit activity
-    const handleAcivitySubmit = async (e) => {
+    const handleEditScheduleSubmit = async (e) => {
         e.preventDefault();
         setIsloading(true);
         try {
-            const response = await usersAPI.putSchedule({
-                title: editSchedule.title,
-                description: editSchedule.description,
-                start_datetime: editSchedule.start_datetimem,
-                end_datetime: editSchedule.end_datetime
-            });
-            if (response.status===201) {
-                Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    title: response.data.status,
-                    icon: 'success',
-                    showConfirmButton: false,
-                    timer:3000,
-                    timerProgressBar:true,
-                })
-            } else {
-                Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    title: 'store failed',
-                    icon: 'error',
-                    showConfirmButton: false,
-                    timer:3000,
-                    timerProgressBar:true,
-                })
-            }
+            const response = await usersAPI.putSchedule(editSchedule.id,editSchedule);
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                title: response.data.message,
+                icon: 'success',
+                showConfirmButton: false,
+                timer:3000,
+                timerProgressBar:true,
+            })
             fetchSchedule();
+            setEditSchedule({});
         } catch (error) {
             Swal.fire({
                 toast: true,
                 position: 'top-end',
-                title: 'store failed',
+                title: 'update failed',
                 icon: 'error',
                 showConfirmButton: false,
                 timer:3000,
                 timerProgressBar:true,
             })
-            console.log(error);
+            console.log(error.response?.data?.message);
         } finally {
             setIsloading(false);
+            setEditSchedule({});
         }
     }
     //submit activity
@@ -186,6 +180,71 @@ export const SchedulePage = () => {
         }
     }
 
+    const onCancelSchedule = async (e) => {
+        e.preventDefault();
+        setIsloading(true);
+        try {
+            const response = await usersAPI.patchSchedule(editSchedule.id);
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                title: response.data.message,
+                icon: 'success',
+                showConfirmButton: false,
+                timer:3000,
+                timerProgressBar:true,
+            });
+            fetchSchedule();
+            setEditSchedule({});
+        } catch (error) {
+            console.log(error) 
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                title: 'update failed',
+                icon: 'error',
+                showConfirmButton: false,
+                timer:3000,
+                timerProgressBar:true,
+            })
+            console.log(error.response?.data?.message);
+        } finally {
+            setIsloading(false);
+        }
+    }
+    //delete
+    const onDeleteSchedule = async (e) => {
+        e.preventDefault();
+        setIsloading(true);
+        try {
+            const response = await usersAPI.deleteSchedule(editSchedule.id);
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                title: response.data.message,
+                icon: 'success',
+                showConfirmButton: false,
+                timer:3000,
+                timerProgressBar:true,
+            });
+            fetchSchedule();
+            setEditSchedule({});
+        } catch (error) {
+            console.log(error) 
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                title: 'update failed',
+                icon: 'error',
+                showConfirmButton: false,
+                timer:3000,
+                timerProgressBar:true,
+            })
+            console.log(error.response?.data?.message);
+        } finally {
+            setIsloading(false);
+        }
+    }
     return (
         <section className="flex gap-6 px-4">
             <div className="flex flex-col basis-2/3 gap-4">
@@ -206,12 +265,12 @@ export const SchedulePage = () => {
                             </div>
                             {/* detail max 2 */}
                             {schedule
-                            .filter((item)=>item.status==="pending") 
+                            .filter((item)=>item.current_status==="pending") 
                             .slice(0,2)
                             .map((item)=>(
                                 <div key={item.id}>
                                     <button
-                                    onClick={(e)=>setSelectedId(item.id)}
+                                    onClick={(e)=>onOpenDetail(item)}
                                     className="rounded-2xl flex flex-col gap-1 bg-[#535353] px-4 py-1 cursor-pointer w-full items-start justify-start">
                                         <h3 className="font-bold text-white">
                                             {item.title}
@@ -220,46 +279,46 @@ export const SchedulePage = () => {
                                             {formatTanggalId(item.start_datetime)}
                                         </p>
                                     </button>
-                                    {selectedId === item.id && (
+                                    {editSchedule.id === item.id && (
                                         <div 
                                         className="rounded-2xl p-4 bg-[#535353] popup">
-                                            <form className="flex flex-col gap-2 text-white" onSubmit={handleAcivitySubmit}>
+                                            <form className="flex flex-col gap-2 text-white" onSubmit={handleEditScheduleSubmit}>
                                                 <label htmlFor="edit_title">Title</label>
                                                 <input
                                                 id="edit_title"
-                                                name="edit_title"
-                                                value={item.title}
+                                                name="title"
+                                                value={editSchedule.title || ""}
                                                 type='text'
                                                 onChange={handleEditChange}/>
-                                                <label htmlFor="edit_description">description</label>
+                                                <label htmlFor="edit_description">Description</label>
                                                 <input
                                                 id="edit_description"
-                                                name="edit_description"
-                                                value={item.description}
+                                                name="description"
+                                                value={editSchedule.description || ""}
                                                 type='text'
                                                 onChange={handleEditChange}/>
                                                 <label htmlFor="edit_start_datetime">Start Datetime</label>
                                                 <input
                                                 type='date'
                                                 id="edit_start_datetime"
-                                                name="edit_start_datetime"
-                                                value={formatUntukInputDate(item.start_datetime)}
+                                                name="start_datetime"
+                                                value={formatUntukInputDate(editSchedule.start_datetime) || null}
                                                 onChange={handleEditChange}/>
-                                                {item.end_datetime && (
+                                                {editSchedule.end_datetime && (
                                                     <>
                                                     <label htmlFor="edit_end_datetime">End Datetime</label>
                                                     <input
                                                     type='date'
                                                     id="edit_end_datetime"
-                                                    name="edit_end_datetime"
-                                                    value={formatUntukInputDate(item.end_datetime)}
+                                                    name="end_datetime"
+                                                    value={formatUntukInputDate(editSchedule.end_datetime) || null}
                                                     onChange={handleEditChange}/>
                                                     </>
                                                 )}
                                                 <div className="flex flex-row justify-between gap-2">
-                                                    <button className="bg-green-500 w-full rounded-2xl" type='submit'>Save</button>
-                                                    <button className="bg-yellow-500 w-full rounded-2xl" onClick={(e)=>setSelectedId(null)}>Close</button>
-                                                    <button className="bg-red-500 w-full rounded-2xl" onClick={(e)=>setSelectedId(null)}>Cancel</button>
+                                                    <button className="bg-green-500 cursor-pointer w-full rounded-2xl" disabled={isLoading} type='submit'>Save</button>
+                                                    <button className="bg-yellow-500 cursor-pointer w-full rounded-2xl" type='button' disabled={isLoading} onClick={(e)=>setEditSchedule({})}>Close</button>
+                                                    <button className="bg-red-500 cursor-pointer w-full rounded-2xl" type='button' disabled={isLoading} onClick={onCancelSchedule}>Cancel</button>
                                                 </div>
                                             </form>
                                         </div>
@@ -275,22 +334,65 @@ export const SchedulePage = () => {
                             </div>
                             {/* detail */}
                             {schedule
-                            .filter((item)=>item.status==="ongoing") 
+                            .filter((item)=>item.current_status==="ongoing") 
                             .slice(0,2)
                             .map((item)=>(
-                                <button
-                                key={item.id}
-                                onMouseEnter={()=>setShowPopup(true)}
-                                onMouseLeave={()=>setShowPopup(false)}
-                                onClick={() => setShowPopup(!showPopup)}
-                                className="rounded-2xl flex flex-col gap-1 bg-yellow-500 px-4 py-1 cursor-pointer w-full items-start justify-start">
-                                    <h3 className="font-bold text-white">
-                                        {item.title}
-                                    </h3>
-                                    <p className="text-gray-500">
-                                        {formatTanggalId(item.start_datetime)}
-                                    </p>
-                                </button>
+                                <div key={item.id}>
+                                    <button
+                                    onClick={(e)=>onOpenDetail(item)}
+                                    className="rounded-2xl flex flex-col gap-1 bg-yellow-500 px-4 py-1 cursor-pointer w-full items-start justify-start">
+                                        <h3 className="font-bold text-white">
+                                            {item.title}
+                                        </h3>
+                                        <p className="text-gray-500">
+                                            {formatTanggalId(item.start_datetime)}
+                                        </p>
+                                    </button>
+                                    {editSchedule.id === item.id && (
+                                        <div 
+                                        className="rounded-2xl p-4 bg-[#535353] popup">
+                                            <form className="flex flex-col gap-2 text-white" onSubmit={handleEditScheduleSubmit}>
+                                                <label htmlFor="edit_title">Title</label>
+                                                <input
+                                                id="edit_title"
+                                                name="title"
+                                                value={editSchedule.title || ""}
+                                                type='text'
+                                                onChange={handleEditChange}/>
+                                                <label htmlFor="edit_description">Description</label>
+                                                <input
+                                                id="edit_description"
+                                                name="description"
+                                                value={editSchedule.description || ""}
+                                                type='text'
+                                                onChange={handleEditChange}/>
+                                                <label htmlFor="edit_start_datetime">Start Datetime</label>
+                                                <input
+                                                type='date'
+                                                id="edit_start_datetime"
+                                                name="start_datetime"
+                                                value={formatUntukInputDate(editSchedule.start_datetime) || null}
+                                                onChange={handleEditChange}/>
+                                                {editSchedule.end_datetime && (
+                                                    <>
+                                                    <label htmlFor="edit_end_datetime">End Datetime</label>
+                                                    <input
+                                                    type='date'
+                                                    id="edit_end_datetime"
+                                                    name="end_datetime"
+                                                    value={formatUntukInputDate(editSchedule.end_datetime) || null}
+                                                    onChange={handleEditChange}/>
+                                                    </>
+                                                )}
+                                                <div className="flex flex-row justify-between gap-2">
+                                                    <button className="bg-green-500 w-full rounded-2xl cursor-pointer" disabled={isLoading} type='submit'>Save</button>
+                                                    <button className="bg-yellow-500 w-full rounded-2xl cursor-pointer" type='button' disabled={isLoading} onClick={(e)=>setEditSchedule({})}>Close</button>
+                                                    <button className="bg-red-500 w-full rounded-2xl cursor-pointer" type='button' disabled={isLoading} onClick={onCancelSchedule}>Cancel</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    )}
+                                </div>
                             ))}
                         </div>
                         {/* completed */}
@@ -301,19 +403,118 @@ export const SchedulePage = () => {
                             </div>
                             {/* detail */}
                             {schedule
-                            .filter((item)=>item.status==="completed") 
+                            .filter((item)=>item.current_status==="completed") 
                             .slice(0,2)
                             .map((item)=>(
-                                <button
-                                key={item.id}
-                                onMouseEnter={()=>setShowPopup(true)}
-                                onMouseLeave={()=>setShowPopup(false)}
-                                onClick={() => setShowPopup(!showPopup)}
-                                className="rounded-2xl flex-flex-col gap-2 bg-green-500 px-4 py-1">
-                                    <h3 className="font-bold text-white line-through">
-                                        {item.title}
-                                    </h3>
-                                </button>
+                                <div key={item.id}>
+                                    <button
+                                    onClick={(e)=>onOpenDetail(item)}
+                                    className="rounded-2xl flex-flex-col gap-2 bg-green-500 px-4 py-1 cursor-pointer">
+                                        <h3 className="font-bold text-white line-through">
+                                            {item.title}
+                                        </h3>
+                                    </button>
+                                    {editSchedule.id === item.id && (
+                                            <div 
+                                            className="rounded-2xl p-4 bg-[#535353] popup">
+                                                <div className="flex flex-col gap-2 text-white" onSubmit={handleEditScheduleSubmit}>
+                                                    <label htmlFor="edit_title">Title</label>
+                                                    <input
+                                                    id="edit_title"
+                                                    name="title"
+                                                    value={editSchedule.title || ""}
+                                                    type='text'/>
+                                                    <label htmlFor="edit_description">Description</label>
+                                                    <input
+                                                    id="edit_description"
+                                                    name="description"
+                                                    value={editSchedule.description || ""}
+                                                    type='text'/>
+                                                    <label htmlFor="edit_start_datetime">Start Datetime</label>
+                                                    <input
+                                                    type='date'
+                                                    id="edit_start_datetime"
+                                                    name="start_datetime"
+                                                    value={formatUntukInputDate(editSchedule.start_datetime) || null}/>
+                                                    {editSchedule.end_datetime && (
+                                                        <>
+                                                        <label htmlFor="edit_end_datetime">End Datetime</label>
+                                                        <input
+                                                        type='date'
+                                                        id="edit_end_datetime"
+                                                        name="end_datetime"
+                                                        value={formatUntukInputDate(editSchedule.end_datetime) || null}/>
+                                                        </>
+                                                    )}
+                                                    <div className="flex flex-row justify-between gap-2">
+                                                        <button className="bg-yellow-500 w-full rounded-2xl cursor-pointer" type='button' disabled={isLoading} onClick={(e)=>setEditSchedule({})}>Close</button>
+                                                        <button className="bg-red-500 w-full rounded-2xl cursor-pointer" type='button' disabled={isLoading} onClick={onDeleteSchedule}>Delete</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                </div>
+                            ))}
+                        </div>
+                        {/* cancelled */}
+                        <div className="basis-1/3 flex flex-col gap-2">
+                            <div className="flex gap-2 items-center text-red-500 font-semibold">
+                                <FaDotCircle className="fill-red-500"/>
+                                <h2>Cancelled</h2>
+                            </div>
+                            {/* detail */}
+                            {schedule
+                            .filter((item)=>item.current_status==="cancelled") 
+                            .slice(0,2)
+                            .map((item)=>(
+                                <div key={item.id}>
+                                    <button
+                                    onClick={(e)=>onOpenDetail(item)}
+                                    className="rounded-2xl flex-flex-col gap-2 bg-red-500 px-4 py-1 cursor-pointer">
+                                        <h3 className="font-bold text-white line-through">
+                                            {item.title}
+                                        </h3>
+                                    </button>
+                                    {editSchedule.id === item.id && (
+                                            <div 
+                                            className="rounded-2xl p-4 bg-[#535353] popup">
+                                                <div className="flex flex-col gap-2 text-white" onSubmit={handleEditScheduleSubmit}>
+                                                    <label htmlFor="edit_title">Title</label>
+                                                    <input
+                                                    id="edit_title"
+                                                    name="title"
+                                                    value={editSchedule.title || ""}
+                                                    type='text'/>
+                                                    <label htmlFor="edit_description">Description</label>
+                                                    <input
+                                                    id="edit_description"
+                                                    name="description"
+                                                    value={editSchedule.description || ""}
+                                                    type='text'/>
+                                                    <label htmlFor="edit_start_datetime">Start Datetime</label>
+                                                    <input
+                                                    type='date'
+                                                    id="edit_start_datetime"
+                                                    name="start_datetime"
+                                                    value={formatUntukInputDate(editSchedule.start_datetime) || null}/>
+                                                    {editSchedule.end_datetime && (
+                                                        <>
+                                                        <label htmlFor="edit_end_datetime">End Datetime</label>
+                                                        <input
+                                                        type='date'
+                                                        id="edit_end_datetime"
+                                                        name="end_datetime"
+                                                        value={formatUntukInputDate(editSchedule.end_datetime) || null}/>
+                                                        </>
+                                                    )}
+                                                    <div className="flex flex-row justify-between gap-2">
+                                                        <button className="bg-yellow-500 w-full rounded-2xl cursor-pointer" type='button' disabled={isLoading} onClick={(e)=>setEditSchedule({})}>Close</button>
+                                                        <button className="bg-red-500 w-full rounded-2xl cursor-pointer" type='button' disabled={isLoading} onClick={onDeleteSchedule}>Delete</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                </div>
                             ))}
                         </div>
                     </div>
@@ -324,44 +525,52 @@ export const SchedulePage = () => {
                 {/* today schedul */}
                 <div className="overflow-auto scrollbar-none custom-bg-color flex flex-col gap-2 w-full h-[33vh] rounded-2xl text-white p-4">
                     <h2 className="font-bold text-2xl">Today</h2>
-                    {schedule
-                        .filter((item)=>item.status==="ongoing")
-                        .map((item)=>(
-                            <div 
-                            key={item.id}
-                            className="flex flex-col gap-1">
-                            <h3 className="text-xl">
-                                {item.title}
-                            </h3>
-                            <div className="text-gray-500 flex gap-1">
-                                <p className="text-gray-500">
-                                    {new Date(item.start_datetime)
-                                        .getHours()
-                                        .toString()
-                                        .padStart(2, '0')}
-                                    :
-                                    {new Date(item.start_datetime)
-                                        .getMinutes()
-                                        .toString()
-                                        .padStart(2, '0')}
-                                </p>
-                                <p>-</p>
-                                {item.end_datetime && (
-                                    <p className="text-gray-500">
-                                        {new Date(item.end_datetime)
+                    {ongoingSchedule.length > 0 ? (
+                        ongoingSchedule.map((item) => (
+                            <div
+                                key={item.id}
+                                className="flex flex-col gap-1"
+                            >
+                                <h3 className="text-xl">
+                                    {item.title}
+                                </h3>
+
+                                <div className="text-gray-500 flex gap-1">
+                                    <p>
+                                        {new Date(item.start_datetime)
                                             .getHours()
                                             .toString()
-                                            .padStart(2, '0')}
+                                            .padStart(2,'0')}
                                         :
-                                        {new Date(item.end_datetime)
+                                        {new Date(item.start_datetime)
                                             .getMinutes()
                                             .toString()
-                                            .padStart(2, '0')}
+                                            .padStart(2,'0')}
                                     </p>
-                                )}
+
+                                    {item.end_datetime && (
+                                        <>
+                                            <p>-</p>
+
+                                            <p>
+                                                {new Date(item.end_datetime)
+                                                    .getHours()
+                                                    .toString()
+                                                    .padStart(2,'0')}
+                                                :
+                                                {new Date(item.end_datetime)
+                                                    .getMinutes()
+                                                    .toString()
+                                                    .padStart(2,'0')}
+                                            </p>
+                                        </>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        ))
+                    ) : (
+                        <p>No Schedule Today</p>
+                    )}
                 </div>
                 {/* add schedule */}
                 <div className="h-[54vh] scrollbar-none overflow-auto custom-bg-color flex flex-col gap-2 w-full rounded-2xl text-white p-4">

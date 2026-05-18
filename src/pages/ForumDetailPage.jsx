@@ -1,10 +1,12 @@
 import {useEffect, useState, useRef} from 'react'
-import { publicApi } from '../services/api'
+import { publicApi, usersAPI } from '../services/api'
 import { useParams } from "react-router-dom";
 
+//assets
 import searchIcon from "../assets/search.svg";
 import userIcon from "../assets/user.svg"
 import sendIcon from '../assets/sent.svg'
+import Swal from 'sweetalert2'
 
 //helper
 import { formatTanggalId } from "../helper/format-tanggal-id";
@@ -13,18 +15,10 @@ import { formatAngka } from "../helper/format-view";
 
 export const ForumDetailPage = () => {
     const { id } = useParams();
+    const [isLoading, setIsLoading] = useState(false);
     const [forum, setForum] = useState(null);
-    const [comment,setComment] = useState([]);
+    const [comment,setComment] = useState('');
 
-    // handle text area
-    const textareaRef = useRef(null); 
-    const handleInput = () => {
-        const textarea = textareaRef.current;
-        if (textarea) {
-        textarea.style.height = 'auto'; // Reset tinggi
-        textarea.style.height = `${textarea.scrollHeight}px`; // Atur sesuai isi teks
-        }
-    };
     useEffect(() => {
         if (id) {
             fetchForumDetail();
@@ -41,6 +35,56 @@ export const ForumDetailPage = () => {
         }
     };
 
+    // handle text area
+    const textareaRef = useRef(null); 
+    const handleInput = () => {
+        const textarea = textareaRef.current;
+        if (textarea) {
+        textarea.style.height = 'auto'; // Reset tinggi
+        textarea.style.height = `${textarea.scrollHeight}px`; // Atur sesuai isi teks
+        }
+    };
+    const [error, setError] = useState('');
+    const handleSubmitComment = async(e) => {
+        e.preventDefault();
+        setError('')
+        if(comment.length<=0) {
+            setError('comment belum diisi');
+            return;
+        }
+        setIsLoading(true);
+        try {
+            const response = await usersAPI.postComment(id,{
+                comment: comment
+            });
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                title: response.data.message,
+                icon: 'success',
+                showConfirmButton: false,
+                timer:3000,
+                timerProgressBar:true,
+            });
+        } catch (error) {
+            console.log(error.response?.data);
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                title: 'post comment failed',
+                icon: 'error',
+                showConfirmButton: false,
+                timer:3000,
+                timerProgressBar:true,
+            });
+            setComment('');
+            if (id) {
+                fetchForumDetail();
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    } 
     return (
         <section className='flex flex-row p-6 gap-6'>
             <div className='basis 1/4 flex flex-col gap-6'>
@@ -56,7 +100,7 @@ export const ForumDetailPage = () => {
                 <form>
                 <div className="relative w-full max-w-sm">
                     <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                        <img src={searchIcon}/>
+                        <img src={searchIcon} alt="search icon"/>
                     </div>
                     <input
                         type="search"
@@ -97,17 +141,24 @@ export const ForumDetailPage = () => {
                 </div>
                 {/* create comment */}
                 <div className=' text-gray-300 flex flex-row justify-between bg-[#1E1E1E]'>
-                    <form className='w-full'>
+                    <form className='w-full' onSubmit={handleSubmitComment}>
                         <div className='flex flex-row'>
                             <textarea
                                 ref={textareaRef}
+                                value={comment}
                                 onInput={handleInput}
+                                onChange={(e) => setComment(e.target.value)}
                                 placeholder="Type your comment here..."
                                 rows={1}
-                                className="w-full px-4 py-2 break-all resize-none overflow-hidden min-h-[40px]"
+                                required
+                                className="w-full px-4 py-2 break-all resize-none overflow-hidden min-h-10"
                             />
-                            <button>
-                                <img src={sendIcon} alt='send icon' className='px-4 py-2'/>
+                            {error && (<p className='text-red-500'>{error}</p>)}
+                            <button
+                            type='submit'
+                            disabled={isLoading}
+                            className="cursor-pointer">
+                                {isLoading ? (<>posting....</>) : (<img src={sendIcon} alt='send icon' className='px-4 py-2'/>)}
                             </button>
                         </div>
                     </form>

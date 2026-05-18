@@ -61,13 +61,14 @@ export const usersAPI = {
 
     //forum
     postForum:(data)=> apiClient.post('/forum',data),
-    postComment:(data)=>apiClient.post('forum-comment',data),
+    postComment:(id,data)=>apiClient.post(`/forum/${id}/comments`,data),
 
     // schedule
     getSchedule:() => apiClient.get('/schedule'),
     postSchedule:(data) => apiClient.post('/schedule',data),
-    putSchedule:(data)=>apiClient.put('/schedule-update',data),
-    deleteSchedule:(data)=>apiClient.delete('/schedule-delete',data),
+    putSchedule:(id,data)=>apiClient.put(`/schedule/${id}`,data),
+    patchSchedule:(id)=>apiClient.patch(`/schedule/${id}/cancel`),
+    deleteSchedule:(id)=>apiClient.delete(`/schedule/${id}/delete`),
 
     //product-modeling
     getProductCategories: () => apiClient.get('/product-categories'),
