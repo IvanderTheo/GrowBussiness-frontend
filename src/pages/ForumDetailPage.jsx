@@ -11,7 +11,7 @@ import Swal from 'sweetalert2'
 //helper
 import { formatTanggalId } from "../helper/format-tanggal-id";
 import { formatAngka } from "../helper/format-view";
-
+import forumService from "../services/forumService";
 
 export const ForumDetailPage = () => {
     const { id } = useParams();
@@ -19,22 +19,21 @@ export const ForumDetailPage = () => {
     const [forum, setForum] = useState(null);
     const [comment,setComment] = useState('');
 
-    useEffect(() => {
-        if (id) {
-            fetchForumDetail();
+    useEffect(()=>{
+        const subscription =
+            forumService
+            .forumDetail$
+            .subscribe(setForum);
+        if(id){
+            forumService
+            .fetchForumDetail(id);
         }
-    }, [id]);
 
-    const fetchForumDetail = async () => {
-        try {
-            const response = await publicApi.getForumDetail(id);
-            setForum(response.data.data);
-
-        } catch (error) {
-            console.log(error);
+        return ()=>{
+            subscription.unsubscribe();
         }
-    };
-
+    },[id]);
+    console.log(forum);
     // handle text area
     const textareaRef = useRef(null); 
     const handleInput = () => {
@@ -171,7 +170,7 @@ export const ForumDetailPage = () => {
                         <div className='flex flex-row gap-2 items-center'>
                             <img src={userIcon} alt="user icon" className='w-[4vh] h-[4vh]'/>
                             <div className='text-white'>
-                                <h3 className='text-xl'>{comment.user?.first_name}</h3>
+                                <h3 className='text-xl'>{comment.user.first_name}</h3>
                                 <p>{formatTanggalId(comment.created_at)}</p>
                             </div>
                         </div>

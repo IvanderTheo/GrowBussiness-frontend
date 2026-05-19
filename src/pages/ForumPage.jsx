@@ -12,6 +12,7 @@ import Swal from 'sweetalert2'
 //helper
 import { formatTanggalId } from "../helper/format-tanggal-id";
 import { formatAngka } from "../helper/format-view";
+import forumService from "../services/forumService";
 
 export const ForumPage = () => {
 
@@ -28,29 +29,30 @@ export const ForumPage = () => {
     })
     const [isLoading, setIsLoading] = useState(false);
     
-    useEffect(() => {
-        fetchCategory();
-    }, []);
+    useEffect(()=>{
+        const categorySub =
+            forumService.category$
+            .subscribe(setCategory);
 
-    //fetch category
-    const fetchCategory = async () => {
-        try {
-            const response = await publicApi.getForumCategory();
-            const categoriesData = response.data.data;
+        const forumSub =
+            forumService.forum$
+            .subscribe(setForum);
 
-            setCategory(categoriesData);
+        const selectedSub =
+            forumService.selectedCategory$
+            .subscribe(setSelectedCategory);
 
-            //pilih category pertama
-            if (categoriesData.length > 0) {
-                const firstCategory = categoriesData[0];
+        forumService.fetchCategory();
 
-                setSelectedCategory(firstCategory);
-                fetchForum(firstCategory.slug);
-            }
-        } catch (error) {
-            console.log(error);
+        return ()=>{
+
+            categorySub.unsubscribe();
+            forumSub.unsubscribe();
+            selectedSub.unsubscribe();
+
         }
-    }
+
+    },[]);
 
     //handle detail forum
     const handleDetailForum = (id) => {
@@ -61,18 +63,7 @@ export const ForumPage = () => {
             console.log(error);
         }
     }
-
-    //fetch forum
-    const fetchForum = async (slug) => {
-        try {
-            const response = await publicApi.getForum(slug);
-            setForum(response.data.data.data);
-            console.log(response.data);
-        } catch (error) {
-            console.log(error);
-        }
-    }
-
+    
     //limit content
     const maxContent = 20;
 
@@ -167,11 +158,14 @@ export const ForumPage = () => {
                     {category.map((category) => (
                         <div key={category.id}>
                             <button
-                            className="cursor-pointer w-full"
-                            onClick={()=> {
-                                setSelectedCategory(category);
-                                fetchForum(category.slug);
-                            }}
+                            className={
+                                selectedCategory?.id===category.id
+                                ? "bg-gray-700 cursor-pointer w-full rounded-2xl px-2"
+                                : "cursor-pointer w-full px-2"}
+                            onClick={()=>
+                                forumService
+                                .selectCategory(category)
+                            }
                             ><p className="truncate text-white text-start text-xl">{category.name}</p></button>
                             <hr className="border-t border-white"></hr>
                         </div>

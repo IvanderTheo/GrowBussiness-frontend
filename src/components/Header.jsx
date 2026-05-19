@@ -30,7 +30,11 @@ export const Header = () => {
                     ) : (
                         <Link to='/' className='text-olive-50 font-semibold'>Home</Link>
                     )}
-                    <a className='text-olive-50 font-semibold' href="#about">About</a>
+                    {isLandingPage ? (
+                        <a className='text-olive-50 font-semibold' href="#about">About</a>
+                    ) : (
+                        <Link to='/' className='text-olive-50 font-semibold'>About</Link>
+                    )}
                     {isLandingPage ? (
                         <a
                             className='text-olive-50 font-semibold'
@@ -86,7 +90,11 @@ export const Header = () => {
                             </div>
                         </div>
                     )}
-                    <a className='text-olive-50 font-semibold' href="#footer">Contact</a>
+                    {isLandingPage ?(
+                        <a className='text-olive-50 font-semibold' href="#footer">Contact</a>
+                    ):(
+                        <Link to='/' className='text-olive-50 font-semibold'>Contact</Link>
+                    )}
                 </nav>
                 {/* login */}
                 {isAuthenticated ? (

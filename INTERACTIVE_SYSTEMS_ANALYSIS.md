@@ -3,6 +3,11 @@
 
 ---
 
+## note (subject)
+replay subject (menyimpan riwayat terbatas)
+- log, aktivitas, pesan chat terakhir
+cons: memori
+
 ## 📋 Ringkasan Eksekutif
 
 Aplikasi GrowBussiness Frontend telah menerapkan **beberapa konsep** dari Pemrograman Sistem Interaktif, namun **belum menerapkan semuanya secara optimal**. Dokumen ini menganalisis tingkat implementasi masing-masing paradigma.

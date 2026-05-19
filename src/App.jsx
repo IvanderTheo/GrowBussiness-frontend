@@ -8,6 +8,7 @@ import { MainLayout } from './layout/MainLayout'
 import { AuthLayout } from './layout/AuthLayout'
 import { FeatureLayout } from './layout/FeatureLayout'
 
+//page
 import { AuthPage } from './pages/AuthPage'
 import { LandingPage } from './pages/LandingPage'
 import { AiChatPage } from './pages/AiChatPage'
