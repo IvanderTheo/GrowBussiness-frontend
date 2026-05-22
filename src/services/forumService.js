@@ -48,7 +48,6 @@ class ForumService {
         }catch(error){
             console.log(error);
         }
-
     }
     // forum detail
     async fetchForumDetail(id){

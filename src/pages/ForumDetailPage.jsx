@@ -28,12 +28,11 @@ export const ForumDetailPage = () => {
             forumService
             .fetchForumDetail(id);
         }
-
         return ()=>{
             subscription.unsubscribe();
         }
     },[id]);
-    console.log(forum);
+
     // handle text area
     const textareaRef = useRef(null); 
     const handleInput = () => {

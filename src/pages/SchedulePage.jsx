@@ -9,6 +9,7 @@ import Swal from 'sweetalert2'
 //helper
 import { formatTanggalId } from "../helper/format-tanggal-id";
 import { formatUntukInputDate } from '../helper/input-date'
+import calendarService  from '../services/calendarService';
 
 export const SchedulePage = () => {
     const [schedule, setSchedule] = useState([]);
@@ -17,6 +18,7 @@ export const SchedulePage = () => {
     );
 
     const [isLoading,setIsloading] = useState(false);
+
     //enable endtime
     const [isEndTime, setIsEndTime] = useState(false);
     //edit schedule
@@ -29,6 +31,7 @@ export const SchedulePage = () => {
         start_datetime: null,
         end_datetime: null,
     });
+
     useEffect(() => {
         fetchSchedule();
         //set interval
