@@ -52,20 +52,21 @@ export const ForumDetailPage = () => {
         }
         setIsLoading(true);
         try {
-            const response = await usersAPI.postComment(id,{
+            const response = await forumService.postComment(id,{
                 comment: comment
             });
             Swal.fire({
                 toast: true,
                 position: 'top-end',
-                title: response.data.message,
+                title: 'Komentar berhasil ditambahkan',
                 icon: 'success',
                 showConfirmButton: false,
                 timer:3000,
                 timerProgressBar:true,
             });
+            setComment('');
         } catch (error) {
-            console.log(error.response?.data);
+            console.error('[COMPONENT] Error posting comment:', error.message);
             Swal.fire({
                 toast: true,
                 position: 'top-end',
@@ -75,10 +76,6 @@ export const ForumDetailPage = () => {
                 timer:3000,
                 timerProgressBar:true,
             });
-            setComment('');
-            if (id) {
-                fetchForumDetail();
-            }
         } finally {
             setIsLoading(false);
         }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Calendar } from "../components/Calendar";
-import { usersAPI } from '../services/api';
+import calendarService from '../services/calendarService';
 
 //assests
 import { FaDotCircle,FaRegSave } from "react-icons/fa";
@@ -9,7 +9,6 @@ import Swal from 'sweetalert2'
 //helper
 import { formatTanggalId } from "../helper/format-tanggal-id";
 import { formatUntukInputDate } from '../helper/input-date'
-import calendarService  from '../services/calendarService';
 
 export const SchedulePage = () => {
     const [schedule, setSchedule] = useState([]);
@@ -32,25 +31,38 @@ export const SchedulePage = () => {
         end_datetime: null,
     });
 
+    // Subscribe to Calendar Service streams
     useEffect(() => {
-        fetchSchedule();
-        //set interval
+        console.log('[COMPONENT] 🎯 SchedulePage mounted - Subscribing to reactive streams...');
+        
+        // Subscribe to schedule
+        const scheduleSubscription = calendarService.schedule$.subscribe(data => {
+            console.log('[COMPONENT] 📡 Schedule stream updated -', data.length, 'items');
+            setSchedule(data);
+        });
+
+        // Subscribe to POST/PUT/DELETE loading state (affects save/delete buttons)
+        const postLoadingSubscription = calendarService.isPostLoading$.subscribe(data => {
+            console.log('[COMPONENT] 📡 POST Loading state changed:', data);
+            setIsloading(data);
+        });
+        
+        // Fetch initial schedule
+        calendarService.fetchSchedule();
+        
+        // Set interval untuk refresh
         const interval = setInterval(() => {
-            fetchSchedule(); 
+            calendarService.fetchSchedule();
         }, 5000);
-
-        return () => clearInterval(interval);
+        
+        // Cleanup subscriptions
+        return () => {
+            console.log('[COMPONENT] 🗑️ SchedulePage unmounted - Unsubscribing from streams');
+            scheduleSubscription.unsubscribe();
+            postLoadingSubscription.unsubscribe();
+            clearInterval(interval);
+        };
     }, []);
-
-    const fetchSchedule = async () =>{
-        try {
-            const response = await usersAPI.getSchedule();
-            setSchedule(response.data.data);
-        } catch (error) {
-            console.log(error);
-        }
-
-    }
     // change activity
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -89,19 +101,19 @@ export const SchedulePage = () => {
     //submit edit activity
     const handleEditScheduleSubmit = async (e) => {
         e.preventDefault();
-        setIsloading(true);
         try {
-            const response = await usersAPI.putSchedule(editSchedule.id,editSchedule);
+            console.log('[COMPONENT] ✏️ Updating schedule:', editSchedule.id);
+            const response = await calendarService.putSchedule(editSchedule.id, editSchedule);
             Swal.fire({
                 toast: true,
                 position: 'top-end',
-                title: response.data.message,
+                title: 'Schedule updated successfully',
                 icon: 'success',
                 showConfirmButton: false,
                 timer:3000,
                 timerProgressBar:true,
             })
-            fetchSchedule();
+            console.log('[COMPONENT] ✅ Schedule updated');
             setEditSchedule({});
         } catch (error) {
             Swal.fire({
@@ -113,10 +125,7 @@ export const SchedulePage = () => {
                 timer:3000,
                 timerProgressBar:true,
             })
-            console.log(error.response?.data?.message);
-        } finally {
-            setIsloading(false);
-            setEditSchedule({});
+            console.error('[COMPONENT] ❌ Error updating schedule:', error.message);
         }
     }
     //submit activity
@@ -137,24 +146,31 @@ export const SchedulePage = () => {
                 return;
             }
         }
-        setIsloading(true);
         try {
-            const response = await usersAPI.postSchedule({
+            console.log('[COMPONENT] ➕ Adding new schedule...');
+            const response = await calendarService.postSchedule({
                 title: form.title,
                 description: form.description,
                 start_datetime: form.start_datetime,
                 end_datetime: form.end_datetime,
             });
-            if (response.status===201) {
+            if (response) {
                 Swal.fire({
                     toast: true,
                     position: 'top-end',
-                    title: response.data.status,
+                    title: 'Schedule created successfully',
                     icon: 'success',
                     showConfirmButton: false,
                     timer:3000,
                     timerProgressBar:true,
                 })
+                console.log('[COMPONENT] ✅ New schedule created');
+                setForm({
+                    title: '',
+                    description: '',
+                    start_datetime: null,
+                    end_datetime: null,
+                });
             } else {
                 Swal.fire({
                     toast: true,
@@ -166,7 +182,6 @@ export const SchedulePage = () => {
                     timerProgressBar:true,
                 })
             }
-            fetchSchedule();
         } catch (error) {
             Swal.fire({
                 toast: true,
@@ -177,30 +192,28 @@ export const SchedulePage = () => {
                 timer:3000,
                 timerProgressBar:true,
             })
-            console.log(error);
-        } finally {
-            setIsloading(false);
+            console.error('[COMPONENT] ❌ Error creating schedule:', error.message);
         }
     }
 
     const onCancelSchedule = async (e) => {
         e.preventDefault();
-        setIsloading(true);
         try {
-            const response = await usersAPI.patchSchedule(editSchedule.id);
+            console.log('[COMPONENT] ⛔ Cancelling schedule:', editSchedule.id);
+            const response = await calendarService.patchSchedule(editSchedule.id);
             Swal.fire({
                 toast: true,
                 position: 'top-end',
-                title: response.data.message,
+                title: 'Schedule cancelled successfully',
                 icon: 'success',
                 showConfirmButton: false,
                 timer:3000,
                 timerProgressBar:true,
             });
-            fetchSchedule();
+            console.log('[COMPONENT] ✅ Schedule cancelled');
             setEditSchedule({});
         } catch (error) {
-            console.log(error) 
+            console.error('[COMPONENT] ❌ Error cancelling schedule:', error.message);
             Swal.fire({
                 toast: true,
                 position: 'top-end',
@@ -210,30 +223,27 @@ export const SchedulePage = () => {
                 timer:3000,
                 timerProgressBar:true,
             })
-            console.log(error.response?.data?.message);
-        } finally {
-            setIsloading(false);
         }
     }
     //delete
     const onDeleteSchedule = async (e) => {
         e.preventDefault();
-        setIsloading(true);
         try {
-            const response = await usersAPI.deleteSchedule(editSchedule.id);
+            console.log('[COMPONENT] 🗑️ Deleting schedule:', editSchedule.id);
+            const response = await calendarService.deleteSchedule(editSchedule.id);
             Swal.fire({
                 toast: true,
                 position: 'top-end',
-                title: response.data.message,
+                title: 'Schedule deleted successfully',
                 icon: 'success',
                 showConfirmButton: false,
                 timer:3000,
                 timerProgressBar:true,
             });
-            fetchSchedule();
+            console.log('[COMPONENT] ✅ Schedule deleted');
             setEditSchedule({});
         } catch (error) {
-            console.log(error) 
+            console.error('[COMPONENT] ❌ Error deleting schedule:', error.message);
             Swal.fire({
                 toast: true,
                 position: 'top-end',
@@ -243,9 +253,6 @@ export const SchedulePage = () => {
                 timer:3000,
                 timerProgressBar:true,
             })
-            console.log(error.response?.data?.message);
-        } finally {
-            setIsloading(false);
         }
     }
     return (

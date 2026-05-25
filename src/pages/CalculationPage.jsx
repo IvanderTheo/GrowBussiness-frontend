@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { usersAPI } from "../services/api";
+import cogsCalculatorService from "../services/cogsCalculatorService";
 
 //assets
 import { BsStars } from "react-icons/bs";
@@ -19,17 +19,36 @@ export const CalculationPage = () => {
     });
     //category
     const [category,setCategory] = useState([]);
+    
+    // Subscribe to COGS Calculator Service streams
     useEffect(()=> {
-        fetchCategory();
+        console.log('[COMPONENT] CalculationPage mounted - Subscribing to reactive streams...');
+        
+        // Subscribe to product categories
+        const categoriesSubscription = cogsCalculatorService.productCategories$.subscribe(data => {
+            console.log('[COMPONENT] Product categories stream updated:', data.length, 'categories');
+            setCategory(data);
+        });
+
+        // Subscribe to loading state
+        const loadingSubscription = cogsCalculatorService.isLoading$.subscribe(data => {
+            console.log('[COMPONENT] Loading state changed:', data);
+            setIsLoading(prev => ({
+                ...prev,
+                cogs_calculator: data
+            }));
+        });
+        
+        // Fetch initial categories
+        cogsCalculatorService.fetchProductCategories();
+        
+        // Cleanup subscriptions
+        return () => {
+            console.log('[COMPONENT] CalculationPage unmounted - Unsubscribing from streams');
+            categoriesSubscription.unsubscribe();
+            loadingSubscription.unsubscribe();
+        };
     },[]);
-    const fetchCategory = async () => {
-        try {
-            const response = await usersAPI.getProductCategories();
-            setCategory(response.data.data);
-        } catch (error) {
-            console.log(error);
-        }
-    }
     //product
     const [product,setProduct] = useState({
         'product_name': '',
@@ -154,16 +173,18 @@ export const CalculationPage = () => {
         }));
 
         try {
+            console.log('[COMPONENT] Starting product modeling...');
             const [variableResponse, fixedResponse] = await Promise.all([
-                usersAPI.postProductVariables({
+                cogsCalculatorService.postProductVariables({
                     product_name:product.product_name,
                     category:product.product_category}),
-                usersAPI.postProductFixedCosts({category:product.product_category})
+                cogsCalculatorService.postProductFixedCosts({category:product.product_category})
             ]);
             //format variable rows
+            // variableResponse sudah response.data.data dari service (direct array)
             const formattedVariableRows = 
-                variableResponse.data.data.length > 0
-                ? variableResponse.data.data.map((item)=> ({
+                variableResponse.length > 0
+                ? variableResponse.map((item)=> ({
                     material: item.material_name,
                     qtyUsed: item.usage_amount,
                     usageUnit: item.usage_unit,
@@ -182,10 +203,12 @@ export const CalculationPage = () => {
                     costPerProduct: ""
                 }];
             setVariableRows(formattedVariableRows);
+            console.log('[COMPONENT] Variable rows loaded from stream');
             //format fixed rows
+            // fixedResponse sudah response.data.data dari service (direct array)
             const formattedFixedRows =
-                fixedResponse.data.data.length > 0
-                ? fixedResponse.data.data.map((item) => ({
+                fixedResponse.length > 0
+                ? fixedResponse.map((item) => ({
                     costName: item.cost_name,
                     monthlyCost: item.total_monthly_cost,
                     allocatedCost: item.allocated_cost_per_product,
@@ -196,8 +219,9 @@ export const CalculationPage = () => {
                     allocatedCost: "",
                 }];
             setFixedRows(formattedFixedRows);
+            console.log('[COMPONENT] Fixed rows loaded from stream');
         } catch (error) {
-            console.log(error.response?.data);
+            console.error('[COMPONENT] Error in product modeling:', error.message);
         } finally {
             setIsLoading(prev => ({
                 ...prev,
@@ -258,22 +282,13 @@ export const CalculationPage = () => {
                 allocated_cost_per_product: Number(row.allocatedCost),
             }))
         };
-        console.log(payload);
-        setIsLoading(prev => ({
-            ...prev,
-            cogs_calculator: true
-        }));
+        console.log('[COMPONENT] COGS Calculation Payload:', payload);
         try {
-            const response = await usersAPI.postCogsCalculator(payload)
-            console.log(response.data);
-            setCogsCalculation(response.data.data);
+            const response = await cogsCalculatorService.calculateCogs(payload)
+            console.log('[COMPONENT] COGS calculation result received');
+            setCogsCalculation(response);
         } catch (error) {
-            console.log(error.response?.data);
-        } finally {
-            setIsLoading(prev => ({
-                ...prev,
-                cogs_calculator: false
-            }));
+            console.error('[COMPONENT] Error calculating COGS:', error.message);
         }
     }
 return (

@@ -101,23 +101,24 @@ export const ForumPage = () => {
         
         setIsLoading(true);
         try {
-            const response = await usersAPI.postForum(form);
+            console.log('[COMPONENT] Posting new forum...');
+            const response = await forumService.postForum(form);
             Swal.fire({
                 toast: true,
                 position: 'top-end',
-                title: response.data.message,
+                title: 'Forum created successfully',
                 icon: 'success',
                 showConfirmButton: false,
                 timer:3000,
                 timerProgressBar:true,
             });
+            console.log('[COMPONENT] Forum posted');
             setForm({
                 title: '',
                 content: '',
                 category_id: ''
             });
             setShowPopup(false);
-            fetchCategory();
         } catch (error) {
             Swal.fire({
                 toast: true,
@@ -128,7 +129,7 @@ export const ForumPage = () => {
                 timer:3000,
                 timerProgressBar:true,
             });
-            console.log(error.response?.data);
+            console.error('[COMPONENT] Error posting forum:', error.message);
         } finally {
             setIsLoading(false);
         }
@@ -191,35 +192,38 @@ export const ForumPage = () => {
                 <hr className="border-t border-white"></hr>
                 {/* forum */}
                 <div>
-                    {forum.map((item) => (
-                        <div key={item.id} className="flex flex-col">
-                            <div
-                                className="bg-[#1d1d1d] rounded-xl flex flex-row">
-                                <div className="flex flex-col basis-1/4 py-2">
-                                    <button 
-                                        onClick={() => handleDetailForum(item.id)}
-                                        className="text-left cursor-pointer pl-6 font-bold text-lg focus:outline-none"
-                                    >
-                                        {item.title}
-                                    </button>
-
-                                    <button onClick={() => handleDetailForum(item.id)} 
-                                        className="text-left cursor-pointer pl-6 text-base text-gray-500 focus:outline-none"
-                                    >
-                                        {item.content.length > maxContent
-                                        ? `${item.content.substring(0, maxContent)}...`
-                                        : item.content}
-                                    </button>
+                    {forum.map((item) => {
+                        if (!item) return null;
+                        return (
+                            <div key={item.id} className="flex flex-col">
+                                <div
+                                    className="bg-[#1d1d1d] rounded-xl flex flex-row">
+                                    <div className="flex flex-col basis-1/4 py-2">
+                                        <button 
+                                            onClick={() => handleDetailForum(item.id)}
+                                            className="text-left cursor-pointer pl-6 font-bold text-lg focus:outline-none"
+                                        >
+                                            {item.title}
+                                        </button>
+    
+                                        <button onClick={() => handleDetailForum(item.id)} 
+                                            className="text-left cursor-pointer pl-6 text-base text-gray-500 focus:outline-none"
+                                        >
+                                            {item.content && item.content.length > maxContent
+                                            ? `${item.content.substring(0, maxContent)}...`
+                                            : item.content}
+                                        </button>
+                                    </div>
+                                    <div className="flex flex-row justify-end basis-3/4 items-center gap-6 pr-8">
+                                        <p className="text-gray-500">views: <strong className="text-white">{formatAngka(item.views)}</strong></p>
+                                        <p className="text-gray-500">created: <span>{formatTanggalId(item.created_at)}</span></p>
+                                        <p className="flex flex-row gap-2"><img src= {userIcon} alt="user icon"/>{item.user?.first_name}</p>
+                                    </div>
                                 </div>
-                                <div className="flex flex-row justify-end basis-3/4 items-center gap-6 pr-8">
-                                    <p className="text-gray-500">views: <strong className="text-white">{formatAngka(item.views)}</strong></p>
-                                    <p className="text-gray-500">created: <span>{formatTanggalId(item.created_at)}</span></p>
-                                    <p className="flex flex-row gap-2"><img src= {userIcon} alt="user icon"/>{item.user?.first_name}</p>
-                                </div>
+                                <hr className="border-t border-white"></hr>
                             </div>
-                            <hr className="border-t border-white"></hr>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
             {/* add forum */}

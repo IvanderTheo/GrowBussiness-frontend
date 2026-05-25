@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import { usersAPI } from "../services/api";
+import aiChatService from "../services/aiChatService";
 
 //assests
 import newChatIcon from '../assets/new-chat.svg'
@@ -11,6 +11,9 @@ import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { FaHistory } from "react-icons/fa";
 import Swal from 'sweetalert2'
 
+//helper
+import { renderMarkdown } from "../helper/render-markdown";
+
 export const AiChatPage = () => {
     const [sessions, setSessions] = useState([]);
     const [sessionId, setSessionId] = useState(null);
@@ -20,16 +23,64 @@ export const AiChatPage = () => {
     const [input, setInput] = useState("");
 
     const [loading, setLoading] = useState(false);
+    const [isSending, setIsSending] = useState(false);
 
     const chatEndRef = useRef(null);
 
     // open dropdown
     const [openId, setOpenId] = useState(null)
-    const menuRef = useRef<HTMLDivElement>(null);
+    const menuRef = useRef(null);
 
-    // load data (history chat/session)
+    // Subscribe to AI Chat Service streams
     useEffect(() => {
-        fetchSessions();
+        console.log('[COMPONENT] AiChatPage mounted - Subscribing to reactive streams...');
+        
+        // Subscribe to sessions
+        const sessionsSubscription = aiChatService.aiSessions$.subscribe(data => {
+            console.log('[COMPONENT] Sessions stream updated');
+            setSessions(data);
+        });
+
+        // Subscribe to selected session
+        const selectedSessionSubscription = aiChatService.selectedSession$.subscribe(data => {
+            if(data) {
+                console.log('[COMPONENT] Selected session updated');
+                setSessionId(data.id);
+            } else {
+                setSessionId(null);
+            }
+        });
+
+        // Subscribe to chat messages
+        const messagesSubscription = aiChatService.chatMessages$.subscribe(data => {
+            console.log('[COMPONENT] Chat messages stream updated -', data.length, 'messages');
+            setMessages(data);
+        });
+
+        // Subscribe to loading state
+        const loadingSubscription = aiChatService.isLoading$.subscribe(data => {
+            console.log('[COMPONENT] Loading state changed:', data);
+            setLoading(data);
+        });
+
+        // Subscribe to sending state
+        const sendingSubscription = aiChatService.isSending$.subscribe(data => {
+            console.log('[COMPONENT] Sending state changed:', data);
+            setIsSending(data);
+        });
+
+        // Fetch initial sessions
+        aiChatService.fetchAiSessions();
+
+        // Cleanup subscriptions
+        return () => {
+            console.log('[COMPONENT] AiChatPage unmounted - Unsubscribing from streams');
+            sessionsSubscription.unsubscribe();
+            selectedSessionSubscription.unsubscribe();
+            messagesSubscription.unsubscribe();
+            loadingSubscription.unsubscribe();
+            sendingSubscription.unsubscribe();
+        };
     }, []);
 
     // auto scroll
@@ -39,100 +90,72 @@ export const AiChatPage = () => {
         });
     }, [messages]);
 
-    //fetch data
-    const fetchSessions = async () => {
-        try {
-            const response = await usersAPI.getAiSessions();
-
-            setSessions(response.data.data);
-
-        } catch (error) {
-            console.log(error);
-        }
-    };
-
-    // load selected chat
+    // load selected chat with reactive service
     const handleSelectSession = async (id) => {
-        try {
-            const response = await usersAPI.getAiSessionDetail(id);
-            setSessionId(id);
-            setMessages(response.data.messages);
-        } catch (error) {
-            console.log(error);
-        }
+        console.log('[COMPONENT] Session selected:', id);
+        aiChatService.selectSession({ id });
     };
 
     // new chat
     const handleNewChat = () => {
-        setSessionId(null);
-        setMessages([]);
+        console.log('[COMPONENT] New chat initiated');
+        aiChatService.clearSession();
     };
 
-    // send message
+    // send message with reactive service
     const handleSendMessage = async () => {
 
         if (!input.trim()) return;
 
-        const tempUserMessage = {
-            sender: 'user',
-            message: input
-        };
-
-        setMessages(prev => [...prev, tempUserMessage]);
-
         const currentInput = input;
-
         setInput("");
 
-        setLoading(true);
-
+        console.log('[COMPONENT] Sending message...');
+        
         try {
-            const response = await usersAPI.sendAiChat({
+            await aiChatService.sendAiChat({
                 session_id: sessionId,
                 message: currentInput
             });
 
-            const data = response.data;
-
             // session baru otomatis dibuat
             if (!sessionId) {
-                setSessionId(data.session.id);
-
-                fetchSessions();
+                console.log('[COMPONENT] New session created from message');
+                const newSessionId = aiChatService.sessionDetail$.getValue()?.id;
+                if(newSessionId) {
+                    setSessionId(newSessionId);
+                }
+                // Refresh sessions list
+                aiChatService.fetchAiSessions();
             }
 
-            setMessages(prev => [
-                ...prev,
-                data.messages[1]
-            ]);
-
         } catch (error) {
-            console.log(error);
-        } finally {
-            setLoading(false);
+            console.error('[COMPONENT] Error sending message:', error.message);
         }
     };
 
-    //handle delete
+    //handle delete with reactive service
     const handleSessionDelete = async (id) => {
         try {
-            const response = await usersAPI.deleteAiSession(id);
-            const message = response.data.message;
+            console.log('[COMPONENT] Deleting session:', id);
+            await aiChatService.deleteAiSession(id);
+            
             Swal.fire({
-                title: 'berhasil',
-                text: message,
+                title: 'Berhasil',
+                text: 'Chat session deleted successfully',
                 icon: 'success',
-                confirmButtonText: 'Oke'
+                confirmButtonText: 'Ok'
             })
-            fetchSessions();
-            setMessages([]);
+            
+            // Service automatically removes from stream
+            setSessionId(null);
         } catch (error) {
-            console.log(error);
+            console.error('[COMPONENT] Error deleting session:', error.message);
             Swal.fire({
-                title: 'failed',
-                text: 'failed to delete chat',
+                title: 'Gagal',
+                text: 'Failed to delete chat session',
                 icon: 'error',
-                confirmButtonText: 'Oke'
+                confirmButtonText: 'Ok'
             })
         }
     }
@@ -246,7 +269,7 @@ export const AiChatPage = () => {
                 {/* messages */}
                 <div className="flex-1 p-6 overflow-y-auto flex flex-col gap-4 custom-scroll">
 
-                    {messages.length === 0 && (
+                    {!sessionId && messages.length === 0 && !isSending && (
                         <div className="text-white text-2xl h-full flex flex-col items-center justify-center ">
                             <DotLottieReact
                             src="https://lottie.host/54561d77-10aa-4060-b409-05c3c9b97810/p8w2ZNvIOv.lottie"
@@ -257,22 +280,27 @@ export const AiChatPage = () => {
                         </div>
                     )}
 
-                    {messages.map((message, index) => (
+                    {messages && messages.map((message, index) => {
+                        // Validate message exists and has required properties
+                        if (!message || !message.sender) {
+                            console.warn('[COMPONENT] Invalid message object:', message);
+                            return null;
+                        }
+                        return (
+                            <div
+                                key={index}
+                                className={`max-w-[70%] px-4 py-3 rounded-2xl break-words text-white
+                                    ${message.sender === 'user'
+                                        ? 'bg-[#333333] self-end'
+                                        : 'bg-transparent self-start'
+                                    }`}
+                            >
+                                {renderMarkdown(message.message)}
+                            </div>
+                        )
+                    })}
 
-                        <div
-                            key={index}
-                            className={`max-w-[70%] px-4 py-3 rounded-2xl break-words text-white
-                                ${message.sender === 'user'
-                                    ? 'bg-[#333333] self-end'
-                                    : 'bg-transparent self-start'
-                                }`}
-                        >
-                            {message.message}
-                        </div>
-
-                    ))}
-
-                    {loading && (
+                    {isSending && (
                         <div className="bg-[#3b3b3b] self-start px-4 py-3 rounded-2xl text-white">
                             AI Thinking...
                         </div>
